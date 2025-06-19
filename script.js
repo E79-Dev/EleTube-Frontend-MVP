@@ -56,6 +56,8 @@ function onPageLoad() {
 
     // 2. Check the overall login state
     checkLoginState();
+
+    document.getElementById("login-button").setAttribute("href", `${API_BASE_URL}/auth/discord`)
 }
 
 /**
@@ -128,6 +130,7 @@ function renderClips(clips) {
         <p>${clip.description || ''}</p>
         <video controls src="${clip.videoUrl}"></video>
         <div class="clip-actions">
+            <button class="share-btn" data-id="${clip._id}">Share</button>
             ${isOwner ? `<button class="edit-btn" data-id="${clip._id}">Edit</button>` : ''}
             ${isOwner ? `<button class="delete-btn" data-id="${clip._id}">Delete</button>` : ''}
         </div>
@@ -216,6 +219,23 @@ async function handleUpdate(clipId, data) {
     }
 }
 
+function handleShare(clipId, buttonElement) {
+    // NOTE: This is the base URL of your backend, not the API url
+    const shareableLink = `https://eletube.homespi.org/view/${clipId}`;
+
+    navigator.clipboard.writeText(shareableLink).then(() => {
+        // Provide feedback to the user
+        const originalText = buttonElement.textContent;
+        buttonElement.textContent = 'Copied!';
+        setTimeout(() => {
+            buttonElement.textContent = originalText;
+        }, 2000); // Revert back after 2 seconds
+    }).catch(err => {
+        console.error('Failed to copy link: ', err);
+        alert('Could not copy link to clipboard.');
+    });
+}
+
 /**
  * Logs the user out by clearing the token and showing the login view.
  */
@@ -240,6 +260,10 @@ function showAppView() {
 logoutButton.addEventListener('click', logout);
 uploadForm.addEventListener('submit', handleUpload);
 clipsList.addEventListener('click', (event) => {
+    if (event.target.classList.contains('share-btn')) {
+        const clipId = event.target.dataset.id;
+        handleShare(clipId, event.target);
+    }
     if (event.target.classList.contains('delete-btn')) {
         const clipId = event.target.dataset.id;
         if (confirm('Are you sure you want to delete this clip?')) {

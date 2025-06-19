@@ -107,3 +107,9 @@ button:hover, .login-button:hover {
 .delete-btn:hover {
     background-color: #a53b3b;
 }
+.share-btn {
+    background-color: #5865F2; /* Discord Blurple */
+}
+.share-btn:hover {
+    background-color: #4752C4;
+}
