@@ -1,0 +1,109 @@
+/* Basic Setup */
+body {
+    font-family: sans-serif;
+    background-color: #1a1a1a;
+    color: #f0f0f0;
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+}
+
+.view {
+    width: 100%;
+    max-width: 800px;
+}
+
+.hidden {
+    display: none;
+}
+
+/* Header */
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+/* Reusable Card Style */
+.card {
+    background-color: #282828;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+/* Forms and Buttons */
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+input, textarea {
+    padding: 10px;
+    border-radius: 4px;
+    border: 1px solid #444;
+    background-color: #333;
+    color: #f0f0f0;
+    font-size: 1em;
+}
+
+button, .login-button {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    background-color: #5865F2; /* Discord Blurple */
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+}
+
+button:hover, .login-button:hover {
+    background-color: #4752C4;
+}
+
+#logout-button {
+    background-color: #c74a4a;
+}
+#logout-button:hover {
+    background-color: #a53b3b;
+}
+
+
+/* Clips List */
+.clip-item {
+    border: 1px solid #444;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 5px;
+}
+
+.clip-item h4 {
+    margin-top: 0;
+}
+
+.clip-item video {
+    width: 100%;
+    border-radius: 4px;
+    margin-top: 10px;
+}
+
+.clip-actions {
+    margin-top: 10px;
+}
+.edit-btn {
+    background-color: #55a055;
+}
+.edit-btn:hover {
+    background-color: #448844;
+}
+.delete-btn {
+    background-color: #c74a4a;
+}
+.delete-btn:hover {
+    background-color: #a53b3b;
+}
