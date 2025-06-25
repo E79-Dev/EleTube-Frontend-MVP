@@ -40,7 +40,9 @@ form {
     gap: 15px;
 }
 
-input, textarea {
+input,
+textarea,
+select {
     padding: 10px;
     border-radius: 4px;
     border: 1px solid #444;
@@ -49,11 +51,13 @@ input, textarea {
     font-size: 1em;
 }
 
-button, .login-button {
+button,
+.login-button {
     padding: 10px 15px;
     border: none;
     border-radius: 5px;
-    background-color: #5865F2; /* Discord Blurple */
+    background-color: #5865F2;
+    /* Discord Blurple */
     color: white;
     font-weight: bold;
     cursor: pointer;
@@ -62,13 +66,15 @@ button, .login-button {
     display: inline-block;
 }
 
-button:hover, .login-button:hover {
+button:hover,
+.login-button:hover {
     background-color: #4752C4;
 }
 
 #logout-button {
     background-color: #c74a4a;
 }
+
 #logout-button:hover {
     background-color: #a53b3b;
 }
@@ -95,21 +101,28 @@ button:hover, .login-button:hover {
 .clip-actions {
     margin-top: 10px;
 }
+
 .edit-btn {
     background-color: #55a055;
 }
+
 .edit-btn:hover {
     background-color: #448844;
 }
+
 .delete-btn {
     background-color: #c74a4a;
 }
+
 .delete-btn:hover {
     background-color: #a53b3b;
 }
+
 .share-btn {
-    background-color: #5865F2; /* Discord Blurple */
+    background-color: #5865F2;
+    /* Discord Blurple */
 }
+
 .share-btn:hover {
     background-color: #4752C4;
 }

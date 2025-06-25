@@ -1,8 +1,8 @@
 // script.js
 
 // --- CONFIGURATION ---
-// const API_BASE_URL = 'http://localhost:3001/api';
-const API_BASE_URL = 'https://eletube.homespi.org/api'
+const API_BASE_URL = 'http://localhost:3001/api';
+// const API_BASE_URL = 'https://eletube.homespi.org/api'
 
 // --- DOM ELEMENTS ---
 const loginView = document.getElementById('login-view');
@@ -34,6 +34,37 @@ function parseJwt(token) {
         return JSON.parse(atob(token.split('.')[1]));
     } catch (e) {
         return null;
+    }
+}
+
+async function populateGamesDropdown() {
+    const gameSelect = document.getElementById('game-select');
+
+    // Simple check to prevent populating multiple times
+    if (gameSelect.options.length > 1) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/games`);
+        if (!response.ok) throw new Error('Failed to fetch games.');
+
+        const games = await response.json();
+
+        games.forEach(game => {
+            const option = document.createElement('option');
+            option.value = game._id; // The value is the important MongoDB ID
+            option.textContent = game.name; // The text is the human-readable name
+            gameSelect.appendChild(option);
+        });
+
+    } catch (error) {
+        console.error(error);
+        // If it fails, show an error in the dropdown
+        const option = document.createElement('option');
+        option.textContent = 'Could not load games';
+        option.disabled = true;
+        gameSelect.appendChild(option);
     }
 }
 
@@ -115,8 +146,8 @@ function renderClips(clips) {
     }
 
     const loggedInUser = parseJwt(getToken()); // Get current user info
-
-    clips.forEach(clip => {
+    console.log(clips)
+    clips.data.forEach(clip => {
         const clipElement = document.createElement('div');
         clipElement.className = 'clip-item';
 
@@ -126,7 +157,7 @@ function renderClips(clips) {
         clipElement.innerHTML = `
         <h4>${clip.title}</h4>
         <p><strong>Uploader:</strong> ${clip.uploader?.username}</p>
-        <p><strong>Game:</strong> ${clip.game}</p>
+        <p><strong>Game:</strong> ${clip.game?.name ?? clip.game} ${clip.subGame ? `(${clip.subGame})` : ''}</p>
         <p>${clip.description || ''}</p>
         <video controls src="${clip.videoUrl}"></video>
         <div class="clip-actions">
@@ -151,14 +182,16 @@ async function handleUpload(event) {
 
     const title = document.getElementById('title').value;
     const description = document.getElementById('description').value;
-    const game = document.getElementById('game').value;
+    const gameId = document.getElementById('game-select').value;
+    const subGame = document.getElementById('subgame').value;
     const videoFile = document.getElementById('video-file').files[0];
 
     // We use FormData because we are sending a file
     const formData = new FormData();
     formData.append('title', title);
     formData.append('description', description);
-    formData.append('game', game);
+    formData.append('gameId', gameId); // IMPORTANT: Use 'gameId' to match backend
+    formData.append('subGame', subGame);
     formData.append('video', videoFile);
 
     try {
@@ -254,6 +287,7 @@ function showLoginView() {
 function showAppView() {
     loginView.classList.add('hidden');
     appView.classList.remove('hidden');
+    populateGamesDropdown()
 }
 
 // --- EVENT LISTENERS ---
