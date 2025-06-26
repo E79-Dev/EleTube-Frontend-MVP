@@ -36,12 +36,32 @@
                         <option value="" disabled selected>Select a Game...</option>
                         <!-- Games will be populated here by JavaScript -->
                     </select>
-                    <input type="text" id="subgame" placeholder="Sub-game / Mode (e.g., Ranked, Bee Swarm Simulator, Firebush)">
-                    
+                    <input type="text" id="subgame"
+                        placeholder="Sub-game / Mode (e.g., Ranked, Bee Swarm Simulator, Firebush)">
+
                     <label for="video-file">Select video file:</label>
                     <input type="file" id="video-file" accept="video/*" required>
                     <button type="submit" id="upload-button">Upload</button>
                     <p id="upload-status"></p>
+                </form>
+            </section>
+
+            <section class="card">
+                <h3>Upload from URL</h3>
+                <form id="url-upload-form">
+                    <input type="url" id="clip-url" placeholder="Paste clip URL (e.g., from Medal)" required>
+                    <input type="text" id="url-title" placeholder="Clip Title" required>
+
+                    <!-- We will reuse the same games dropdown -->
+                    <select id="url-game-select" required>
+                        <option value="" disabled selected>Select a Game...</option>
+                    </select>
+
+                    <input type="text" id="url-subgame" placeholder="Sub-game / Mode (optional)">
+                    <textarea id="url-description" placeholder="Description (optional)"></textarea>
+
+                    <button type="submit" id="url-upload-button">Process from URL</button>
+                    <p id="url-upload-status"></p>
                 </form>
             </section>
 

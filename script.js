@@ -1,8 +1,8 @@
 // script.js
 
 // --- CONFIGURATION ---
-const API_BASE_URL = 'http://localhost:3001/api';
-// const API_BASE_URL = 'https://eletube.homespi.org/api'
+// const API_BASE_URL = 'http://localhost:3001/api';
+const API_BASE_URL = 'https://eletube.homespi.org/api'
 
 // --- DOM ELEMENTS ---
 const loginView = document.getElementById('login-view');
@@ -38,10 +38,10 @@ function parseJwt(token) {
 }
 
 async function populateGamesDropdown() {
-    const gameSelect = document.getElementById('game-select');
+    const gameSelects = document.querySelectorAll('#game-select, #url-game-select');
 
     // Simple check to prevent populating multiple times
-    if (gameSelect.options.length > 1) {
+    if ([...gameSelects].some(gameSelect => gameSelect.options.length > 1)) {
         return;
     }
 
@@ -55,7 +55,7 @@ async function populateGamesDropdown() {
             const option = document.createElement('option');
             option.value = game._id; // The value is the important MongoDB ID
             option.textContent = game.name; // The text is the human-readable name
-            gameSelect.appendChild(option);
+            gameSelects.forEach(select => select.appendChild(option.cloneNode(true)));
         });
 
     } catch (error) {
@@ -64,7 +64,7 @@ async function populateGamesDropdown() {
         const option = document.createElement('option');
         option.textContent = 'Could not load games';
         option.disabled = true;
-        gameSelect.appendChild(option);
+        gameSelects.forEach(select => select.appendChild(option.cloneNode(true)));
     }
 }
 
@@ -313,6 +313,89 @@ clipsList.addEventListener('click', (event) => {
         }
     }
 });
+
+const urlUploadForm = document.getElementById('url-upload-form');
+urlUploadForm.addEventListener('submit', handleUrlUpload);
+
+async function handleUrlUpload(event) {
+    event.preventDefault();
+    const statusEl = document.getElementById('url-upload-status');
+    const buttonEl = document.getElementById('url-upload-button');
+
+    buttonEl.disabled = true;
+    statusEl.textContent = 'Submitting job...';
+
+    const payload = {
+        clipUrl: document.getElementById('clip-url').value,
+        title: document.getElementById('url-title').value,
+        gameId: document.getElementById('url-game-select').value,
+        subGame: document.getElementById('url-subgame').value,
+        description: document.getElementById('url-description').value,
+    };
+
+    try {
+        // Kick off the job
+        const response = await fetch(`${API_BASE_URL}/clips/from-url`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${getToken()}`
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) throw new Error('Failed to start job.');
+
+        const { jobId } = await response.json();
+        
+        // Start polling for the status
+        statusEl.textContent = 'Processing started... checking status.';
+        const pollInterval = setInterval(() => {
+            pollJobStatus(jobId, pollInterval, statusEl, buttonEl);
+        }, 3000); // Check every 3 seconds
+
+    } catch (error) {
+        statusEl.textContent = `Error: ${error.message}`;
+        buttonEl.disabled = false;
+    }
+}
+
+async function pollJobStatus(jobId, pollInterval, statusEl, buttonEl) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/clips/status/${jobId}`, {
+            headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+
+        if (!response.ok) {
+            // If the job itself isn't found, stop polling.
+            clearInterval(pollInterval);
+            statusEl.textContent = 'Error: Job not found.';
+            buttonEl.disabled = false;
+            return;
+        }
+
+        const { status, error } = await response.json();
+        statusEl.textContent = `Status: ${status}...`;
+
+        if (status === 'completed') {
+            clearInterval(pollInterval);
+            statusEl.textContent = 'Success! Clip created.';
+            buttonEl.disabled = false;
+            urlUploadForm.reset();
+            fetchClips(); // Refresh the main clips list
+        } else if (status === 'failed') {
+            clearInterval(pollInterval);
+            statusEl.textContent = `Failed: ${error}`;
+            buttonEl.disabled = false;
+        }
+        // If status is still pending/downloading/etc, do nothing and let it poll again.
+
+    } catch (pollError) {
+        clearInterval(pollInterval);
+        statusEl.textContent = 'Error checking status.';
+        buttonEl.disabled = false;
+    }
+}
 
 // --- INITIALIZE THE APP ---
 document.addEventListener('DOMContentLoaded', onPageLoad);
