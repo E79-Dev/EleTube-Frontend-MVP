@@ -1,7 +1,7 @@
 // script.js
 
 // --- CONFIGURATION ---
-// const API_BASE_URL = "http://localhost:3001/api"
+//const API_BASE_URL = "http://localhost:3001/api"
 const API_BASE_URL = "https://eletube.homespi.org/api"
 
 // --- DOM ELEMENTS ---
@@ -19,6 +19,12 @@ const clipsContainer = document.getElementById("clips-container")
 const fullscreenModal = document.getElementById("fullscreen-modal")
 const fullscreenVideo = document.getElementById("fullscreen-video")
 const searchInput = document.getElementById("search-input")
+
+// Custom dropdown elements
+const gameSelectContainer = document.getElementById("game-select-container")
+const gameSelectTrigger = document.getElementById("game-select-trigger")
+const gameSelectOptions = document.getElementById("game-select-options")
+const gameSelectHidden = document.getElementById("game-select")
 
 // --- STATE & HELPERS ---
 let currentGridSize = "normal"
@@ -50,10 +56,8 @@ function parseJwt(token) {
 }
 
 async function populateGamesDropdown() {
-  const gameSelect = document.getElementById("game-select")
-
   // Simple check to prevent populating multiple times
-  if (gameSelect.options.length > 1) {
+  if (gameSelectOptions.children.length > 1) {
     return
   }
 
@@ -63,19 +67,91 @@ async function populateGamesDropdown() {
 
     const games = await response.json()
 
+    // Clear existing options except the first placeholder
+    gameSelectOptions.innerHTML = '<div class="select-option" data-value="">Select a Game...</div>'
+
     games.forEach((game) => {
-      const option = document.createElement("option")
-      option.value = game._id
+      const option = document.createElement("div")
+      option.className = "select-option"
+      option.dataset.value = game._id
       option.textContent = game.name
-      gameSelect.appendChild(option)
+      gameSelectOptions.appendChild(option)
     })
   } catch (error) {
     console.error(error)
-    const option = document.createElement("option")
+    const option = document.createElement("div")
+    option.className = "select-option"
     option.textContent = "Could not load games"
-    option.disabled = true
-    gameSelect.appendChild(option)
+    option.style.color = "#ff5252"
+    gameSelectOptions.appendChild(option)
   }
+}
+
+// Custom dropdown functionality
+function initCustomDropdown() {
+  const selectText = gameSelectTrigger.querySelector(".select-text")
+
+  // Toggle dropdown
+  gameSelectTrigger.addEventListener("click", (e) => {
+    e.stopPropagation()
+    const isActive = gameSelectTrigger.classList.contains("active")
+
+    // Close all other dropdowns first
+    document.querySelectorAll(".select-trigger.active").forEach((trigger) => {
+      trigger.classList.remove("active")
+      trigger.nextElementSibling.classList.remove("active")
+    })
+
+    if (!isActive) {
+      gameSelectTrigger.classList.add("active")
+      gameSelectOptions.classList.add("active")
+    }
+  })
+
+  // Handle option selection
+  gameSelectOptions.addEventListener("click", (e) => {
+    if (e.target.classList.contains("select-option")) {
+      const value = e.target.dataset.value
+      const text = e.target.textContent
+
+      // Update hidden input
+      gameSelectHidden.value = value
+
+      // Update display text
+      selectText.textContent = text
+      if (value) {
+        selectText.classList.add("selected")
+      } else {
+        selectText.classList.remove("selected")
+      }
+
+      // Update selected option styling
+      gameSelectOptions.querySelectorAll(".select-option").forEach((opt) => {
+        opt.classList.remove("selected")
+      })
+      e.target.classList.add("selected")
+
+      // Close dropdown
+      gameSelectTrigger.classList.remove("active")
+      gameSelectOptions.classList.remove("active")
+    }
+  })
+
+  // Close dropdown when clicking outside
+  document.addEventListener("click", (e) => {
+    if (!gameSelectContainer.contains(e.target)) {
+      gameSelectTrigger.classList.remove("active")
+      gameSelectOptions.classList.remove("active")
+    }
+  })
+
+  // Close dropdown on escape key
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      gameSelectTrigger.classList.remove("active")
+      gameSelectOptions.classList.remove("active")
+    }
+  })
 }
 
 // --- CORE LOGIC ---
@@ -312,35 +388,41 @@ function closeFullscreen() {
 async function handleUpload(event) {
   event.preventDefault()
   const uploadButton = document.getElementById("upload-button")
+  const submitText = document.getElementById("submit-text")
+
   uploadButton.disabled = true
   uploadButton.classList.add("loading")
-  uploadStatus.textContent = "Launching clip..."
 
   const title = document.getElementById("title").value
   const description = document.getElementById("description").value
-  const gameId = document.getElementById("game-select").value
+  const gameId = gameSelectHidden.value // Use hidden input value
   const subGame = document.getElementById("subgame").value
 
   try {
     if (currentUploadMethod === "file") {
-      await handleFileUpload(title, description, gameId, subGame)
+      await handleFileUpload(title, description, gameId, subGame, submitText)
     } else {
-      await handleUrlUpload(title, description, gameId, subGame)
+      await handleUrlUpload(title, description, gameId, subGame, submitText)
     }
   } catch (error) {
     uploadStatus.textContent = `Launch failed: ${error.message}`
+    submitText.textContent = "Try Again"
   } finally {
     uploadButton.disabled = false
     uploadButton.classList.remove("loading")
     setTimeout(() => {
       uploadStatus.textContent = ""
+      submitText.textContent = "Launch Clip"
     }, 5000)
   }
 }
 
-async function handleFileUpload(title, description, gameId, subGame) {
+async function handleFileUpload(title, description, gameId, subGame, submitText) {
   const videoFile = document.getElementById("video-file").files[0]
   if (!videoFile) throw new Error("Please select a video file")
+
+  uploadStatus.textContent = "Launching clip..."
+  submitText.textContent = "Launching..."
 
   const formData = new FormData()
   formData.append("title", title)
@@ -363,7 +445,8 @@ async function handleFileUpload(title, description, gameId, subGame) {
   }
 
   uploadStatus.textContent = "Clip successfully launched!"
-  uploadForm.reset()
+  submitText.textContent = "Success!"
+  resetForm()
   fetchClips()
 
   // Hide upload panel after success
@@ -372,9 +455,12 @@ async function handleFileUpload(title, description, gameId, subGame) {
   }, 2000)
 }
 
-async function handleUrlUpload(title, description, gameId, subGame) {
+async function handleUrlUpload(title, description, gameId, subGame, submitText) {
   const clipUrl = document.getElementById("clip-url").value
   if (!clipUrl) throw new Error("Please enter a clip URL")
+
+  uploadStatus.textContent = "Initiating download..."
+  submitText.textContent = "Processing..."
 
   const payload = {
     clipUrl: clipUrl,
@@ -419,7 +505,8 @@ async function handleUrlUpload(title, description, gameId, subGame) {
         if (status === "completed") {
           clearInterval(pollInterval)
           uploadStatus.textContent = "Clip successfully sent!"
-          uploadForm.reset()
+          submitText.textContent = "Success!"
+          resetForm()
           fetchClips()
           setTimeout(() => {
             uploadPanel.classList.remove("active")
@@ -435,6 +522,28 @@ async function handleUrlUpload(title, description, gameId, subGame) {
       }
     }, 3000)
   })
+}
+
+/**
+ * Resets the upload form
+ */
+function resetForm() {
+  uploadForm.reset()
+
+  // Reset custom dropdown
+  const selectText = gameSelectTrigger.querySelector(".select-text")
+  selectText.textContent = "Select a Game..."
+  selectText.classList.remove("selected")
+  gameSelectHidden.value = ""
+
+  // Reset selected option styling
+  gameSelectOptions.querySelectorAll(".select-option").forEach((opt) => {
+    opt.classList.remove("selected")
+  })
+  gameSelectOptions.querySelector('[data-value=""]').classList.add("selected")
+
+  // Reset file label
+  updateFileLabel()
 }
 
 async function handleDelete(clipId) {
@@ -533,6 +642,46 @@ function toggleGridSize() {
 }
 
 /**
+ * Switches upload method and updates form validation
+ */
+function switchUploadMethod(method) {
+  currentUploadMethod = method
+
+  // Update active tab button
+  document.querySelectorAll(".method-tab").forEach((b) => b.classList.remove("active"))
+  document.querySelector(`[data-method="${method}"]`).classList.add("active")
+
+  // Update active method content
+  document.querySelectorAll(".upload-method").forEach((content) => {
+    content.classList.remove("active")
+  })
+  document.getElementById(`${method}-method`).classList.add("active")
+
+  // Update required fields based on method
+  const videoFile = document.getElementById("video-file")
+  const clipUrl = document.getElementById("clip-url")
+
+  if (method === "file") {
+    videoFile.required = true
+    clipUrl.required = false
+    clipUrl.value = "" // Clear URL when switching to file
+  } else {
+    videoFile.required = false
+    clipUrl.required = true
+    videoFile.value = "" // Clear file when switching to URL
+    updateFileLabel() // Reset file label
+  }
+}
+
+/**
+ * Updates the file upload label
+ */
+function updateFileLabel() {
+  const label = document.querySelector(".file-label span")
+  label.textContent = "Choose Video File"
+}
+
+/**
  * Logs the user out
  */
 function logout() {
@@ -551,6 +700,7 @@ function showAppView() {
   loginView.classList.add("hidden")
   appView.classList.remove("hidden")
   populateGamesDropdown()
+  initCustomDropdown()
 }
 
 // --- EVENT LISTENERS ---
@@ -566,30 +716,7 @@ gridToggle.addEventListener("click", toggleGridSize)
 // Upload method switching
 document.querySelectorAll(".method-tab").forEach((btn) => {
   btn.addEventListener("click", () => {
-    const method = btn.dataset.method
-    currentUploadMethod = method
-
-    // Update active tab button
-    document.querySelectorAll(".method-tab").forEach((b) => b.classList.remove("active"))
-    btn.classList.add("active")
-
-    // Update active method content
-    document.querySelectorAll(".upload-method").forEach((content) => {
-      content.classList.remove("active")
-    })
-    document.getElementById(`${method}-method`).classList.add("active")
-
-    // Update required fields
-    const videoFile = document.getElementById("video-file")
-    const clipUrl = document.getElementById("clip-url")
-
-    if (method === "file") {
-      videoFile.required = true
-      clipUrl.required = false
-    } else {
-      videoFile.required = false
-      clipUrl.required = true
-    }
+    switchUploadMethod(btn.dataset.method)
   })
 })
 
@@ -617,11 +744,11 @@ uploadForm.addEventListener("submit", handleUpload)
 // Logout
 logoutButton.addEventListener("click", logout)
 
-// Clips interactions - Updated to handle clicks better
+// Clips interactions
 clipsList.addEventListener("click", (event) => {
   // Prevent event bubbling for video and play button clicks
   if (event.target.classList.contains("clip-video") || event.target.classList.contains("play-button")) {
-    return // These are handled by their own event listeners
+    return // These are handle by their own event listeners
   }
 
   const clipId = event.target.dataset.id || event.target.closest("[data-id]")?.dataset.id

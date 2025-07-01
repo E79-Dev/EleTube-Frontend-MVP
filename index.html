@@ -74,17 +74,32 @@
         <div id="upload-panel" class="upload-panel">
             <div class="upload-container">
                 <form id="upload-form" class="upload-form">
+                    <!-- Clip Title -->
                     <div class="form-group">
                         <input type="text" id="title" placeholder="Clip Title" required>
                     </div>
+
+                    <!-- Description -->
                     <div class="form-group">
                         <textarea id="description" placeholder="Description (optional)"></textarea>
                     </div>
+
+                    <!-- Game Category and Sub Category -->
                     <div class="form-row">
                         <div class="form-group">
-                            <select id="game-select" required>
-                                <option value="" disabled selected>Select a Game...</option>
-                            </select>
+                            <!-- Custom Dropdown -->
+                            <div class="custom-select" id="game-select-container">
+                                <div class="select-trigger" id="game-select-trigger">
+                                    <span class="select-text">Select a Game...</span>
+                                    <i class="fas fa-chevron-down select-arrow"></i>
+                                </div>
+                                <div class="select-options" id="game-select-options">
+                                    <div class="select-option" data-value="">Select a Game...</div>
+                                    <!-- Options will be populated dynamically -->
+                                </div>
+                            </div>
+                            <!-- Hidden input to store the selected value -->
+                            <input type="hidden" id="game-select" name="gameId" required>
                         </div>
                         <div class="form-group">
                             <input type="text" id="subgame" placeholder="Sub-game / Mode">
@@ -125,7 +140,7 @@
                     
                     <button type="submit" id="upload-button" class="submit-btn">
                         <i class="fas fa-rocket"></i>
-                        Launch Clip
+                        <span id="submit-text">Launch Clip</span>
                     </button>
                     <p id="upload-status" class="status-message"></p>
                 </form>
