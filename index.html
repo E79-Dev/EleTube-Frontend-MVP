@@ -17,20 +17,6 @@
         <div class="stars3"></div>
     </div>
 
-    <!-- Loading Screen -->
-    <div id="loading-screen" class="loading-screen">
-        <div class="loading-content">
-            <div class="loading-logo">
-                <i class="fas fa-rocket"></i>
-                <h1>EleTube</h1>
-            </div>
-            <div class="loading-bar">
-                <div class="loading-progress"></div>
-            </div>
-            <p>Launching...</p>
-        </div>
-    </div>
-
     <!-- Login View -->
     <div id="login-view" class="view login-view">
         <div class="login-container">
@@ -87,80 +73,62 @@
         <!-- Upload Panel -->
         <div id="upload-panel" class="upload-panel">
             <div class="upload-container">
-                <div class="upload-tabs">
-                    <button class="tab-btn active" data-tab="file">
-                        <i class="fas fa-upload"></i>
-                        Upload File
+                <form id="upload-form" class="upload-form">
+                    <div class="form-group">
+                        <input type="text" id="title" placeholder="Clip Title" required>
+                    </div>
+                    <div class="form-group">
+                        <textarea id="description" placeholder="Description (optional)"></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <select id="game-select" required>
+                                <option value="" disabled selected>Select a Game...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <input type="text" id="subgame" placeholder="Sub-game / Mode">
+                        </div>
+                    </div>
+                    
+                    <!-- Upload Method Selection -->
+                    <div class="upload-method-section">
+                        <div class="method-tabs">
+                            <button type="button" class="method-tab active" data-method="file">
+                                <i class="fas fa-upload"></i>
+                                Upload File
+                            </button>
+                            <button type="button" class="method-tab" data-method="url">
+                                <i class="fas fa-link"></i>
+                                From URL
+                            </button>
+                        </div>
+                        
+                        <!-- File Upload Method -->
+                        <div id="file-method" class="upload-method active">
+                            <div class="form-group file-upload">
+                                <input type="file" id="video-file" accept="video/*" required>
+                                <label for="video-file" class="file-label">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                    <span>Choose Video File</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- URL Upload Method -->
+                        <div id="url-method" class="upload-method">
+                            <div class="form-group">
+                                <input type="url" id="clip-url" placeholder="Paste clip URL (e.g., from Medal)">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" id="upload-button" class="submit-btn">
+                        <i class="fas fa-rocket"></i>
+                        Launch Clip
                     </button>
-                    <button class="tab-btn" data-tab="url">
-                        <i class="fas fa-link"></i>
-                        From URL
-                    </button>
-                </div>
-
-                <!-- File Upload Tab -->
-                <div id="file-tab" class="tab-content active">
-                    <form id="upload-form" class="upload-form">
-                        <div class="form-group">
-                            <input type="text" id="title" placeholder="Clip Title" required>
-                        </div>
-                        <div class="form-group">
-                            <textarea id="description" placeholder="Description (optional)"></textarea>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <select id="game-select" required>
-                                    <option value="" disabled selected>Select a Game...</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <input type="text" id="subgame" placeholder="Sub-game / Mode">
-                            </div>
-                        </div>
-                        <div class="form-group file-upload">
-                            <input type="file" id="video-file" accept="video/*" required>
-                            <label for="video-file" class="file-label">
-                                <i class="fas fa-cloud-upload-alt"></i>
-                                <span>Choose Video File</span>
-                            </label>
-                        </div>
-                        <button type="submit" id="upload-button" class="submit-btn">
-                            <i class="fas fa-rocket"></i>
-                            Launch Clip
-                        </button>
-                        <p id="upload-status" class="status-message"></p>
-                    </form>
-                </div>
-
-                <!-- URL Upload Tab -->
-                <div id="url-tab" class="tab-content">
-                    <form id="url-upload-form" class="upload-form">
-                        <div class="form-group">
-                            <input type="url" id="clip-url" placeholder="Paste clip URL (e.g., from Medal)" required>
-                        </div>
-                        <div class="form-group">
-                            <input type="text" id="url-title" placeholder="Clip Title" required>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <select id="url-game-select" required>
-                                    <option value="" disabled selected>Select a Game...</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <input type="text" id="url-subgame" placeholder="Sub-game / Mode">
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <textarea id="url-description" placeholder="Description (optional)"></textarea>
-                        </div>
-                        <button type="submit" id="url-upload-button" class="submit-btn">
-                            <i class="fas fa-download"></i>
-                            Process from URL
-                        </button>
-                        <p id="url-upload-status" class="status-message"></p>
-                    </form>
-                </div>
+                    <p id="upload-status" class="status-message"></p>
+                </form>
             </div>
         </div>
 

@@ -1,11 +1,10 @@
 // script.js
 
 // --- CONFIGURATION ---
-//const API_BASE_URL = "http://localhost:3001/api"
+// const API_BASE_URL = "http://localhost:3001/api"
 const API_BASE_URL = "https://eletube.homespi.org/api"
 
 // --- DOM ELEMENTS ---
-const loadingScreen = document.getElementById("loading-screen")
 const loginView = document.getElementById("login-view")
 const appView = document.getElementById("app-view")
 const welcomeMessage = document.getElementById("welcome-message")
@@ -14,9 +13,7 @@ const uploadPanel = document.getElementById("upload-panel")
 const uploadToggle = document.getElementById("upload-toggle")
 const gridToggle = document.getElementById("grid-toggle")
 const uploadForm = document.getElementById("upload-form")
-const urlUploadForm = document.getElementById("url-upload-form")
 const uploadStatus = document.getElementById("upload-status")
-const urlUploadStatus = document.getElementById("url-upload-status")
 const clipsList = document.getElementById("clips-list")
 const clipsContainer = document.getElementById("clips-container")
 const fullscreenModal = document.getElementById("fullscreen-modal")
@@ -28,6 +25,7 @@ let currentGridSize = "normal"
 let currentView = "grid"
 let allClips = []
 let filteredClips = []
+let currentUploadMethod = "file"
 
 /**
  * Gets the JWT from localStorage.
@@ -52,10 +50,10 @@ function parseJwt(token) {
 }
 
 async function populateGamesDropdown() {
-  const gameSelects = document.querySelectorAll("#game-select, #url-game-select")
+  const gameSelect = document.getElementById("game-select")
 
   // Simple check to prevent populating multiple times
-  if ([...gameSelects].some((gameSelect) => gameSelect.options.length > 1)) {
+  if (gameSelect.options.length > 1) {
     return
   }
 
@@ -69,39 +67,33 @@ async function populateGamesDropdown() {
       const option = document.createElement("option")
       option.value = game._id
       option.textContent = game.name
-      gameSelects.forEach((select) => select.appendChild(option.cloneNode(true)))
+      gameSelect.appendChild(option)
     })
   } catch (error) {
     console.error(error)
     const option = document.createElement("option")
     option.textContent = "Could not load games"
     option.disabled = true
-    gameSelects.forEach((select) => select.appendChild(option.cloneNode(true)))
+    gameSelect.appendChild(option)
   }
 }
 
 // --- CORE LOGIC ---
 
 /**
- * Handles the page load. Shows loading screen, then checks auth.
+ * Handles the page load. Checks auth immediately.
  */
 function onPageLoad() {
-  // Show loading screen for 2 seconds
-  setTimeout(() => {
-    loadingScreen.style.display = "none"
+  // Check if we're coming back from a Discord login
+  const urlParams = new URLSearchParams(window.location.search)
+  const tokenFromUrl = urlParams.get("token")
 
-    // Check if we're coming back from a Discord login
-    const urlParams = new URLSearchParams(window.location.search)
-    const tokenFromUrl = urlParams.get("token")
+  if (tokenFromUrl) {
+    localStorage.setItem("jwt", tokenFromUrl)
+    window.history.replaceState({}, document.title, window.location.pathname)
+  }
 
-    if (tokenFromUrl) {
-      localStorage.setItem("jwt", tokenFromUrl)
-      window.history.replaceState({}, document.title, window.location.pathname)
-    }
-
-    checkLoginState()
-  }, 2000)
-
+  checkLoginState()
   document.getElementById("login-button").setAttribute("href", `${API_BASE_URL}/auth/discord`)
 }
 
@@ -328,37 +320,13 @@ async function handleUpload(event) {
   const description = document.getElementById("description").value
   const gameId = document.getElementById("game-select").value
   const subGame = document.getElementById("subgame").value
-  const videoFile = document.getElementById("video-file").files[0]
-
-  const formData = new FormData()
-  formData.append("title", title)
-  formData.append("description", description)
-  formData.append("gameId", gameId)
-  formData.append("subGame", subGame)
-  formData.append("video", videoFile)
 
   try {
-    const response = await fetch(`${API_BASE_URL}/clips`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${getToken()}`,
-      },
-      body: formData,
-    })
-
-    if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(errorData.message || "Upload failed.")
+    if (currentUploadMethod === "file") {
+      await handleFileUpload(title, description, gameId, subGame)
+    } else {
+      await handleUrlUpload(title, description, gameId, subGame)
     }
-
-    uploadStatus.textContent = "Clip successfully launched!"
-    uploadForm.reset()
-    fetchClips()
-
-    // Hide upload panel after success
-    setTimeout(() => {
-      uploadPanel.classList.remove("active")
-    }, 2000)
   } catch (error) {
     uploadStatus.textContent = `Launch failed: ${error.message}`
   } finally {
@@ -370,88 +338,103 @@ async function handleUpload(event) {
   }
 }
 
-async function handleUrlUpload(event) {
-  event.preventDefault()
-  const statusEl = urlUploadStatus
-  const buttonEl = document.getElementById("url-upload-button")
+async function handleFileUpload(title, description, gameId, subGame) {
+  const videoFile = document.getElementById("video-file").files[0]
+  if (!videoFile) throw new Error("Please select a video file")
 
-  buttonEl.disabled = true
-  buttonEl.classList.add("loading")
-  statusEl.textContent = "Initiating download..."
+  const formData = new FormData()
+  formData.append("title", title)
+  formData.append("description", description)
+  formData.append("gameId", gameId)
+  formData.append("subGame", subGame)
+  formData.append("video", videoFile)
 
-  const payload = {
-    clipUrl: document.getElementById("clip-url").value,
-    title: document.getElementById("url-title").value,
-    gameId: document.getElementById("url-game-select").value,
-    subGame: document.getElementById("url-subgame").value,
-    description: document.getElementById("url-description").value,
+  const response = await fetch(`${API_BASE_URL}/clips`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${getToken()}`,
+    },
+    body: formData,
+  })
+
+  if (!response.ok) {
+    const errorData = await response.json()
+    throw new Error(errorData.message || "Upload failed.")
   }
 
-  try {
-    const response = await fetch(`${API_BASE_URL}/clips/from-url`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${getToken()}`,
-      },
-      body: JSON.stringify(payload),
-    })
+  uploadStatus.textContent = "Clip successfully launched!"
+  uploadForm.reset()
+  fetchClips()
 
-    if (!response.ok) throw new Error("Failed to start job.")
-
-    const { jobId } = await response.json()
-
-    statusEl.textContent = "Processing to cloud..."
-    const pollInterval = setInterval(() => {
-      pollJobStatus(jobId, pollInterval, statusEl, buttonEl)
-    }, 3000)
-  } catch (error) {
-    statusEl.textContent = `error: ${error.message}`
-    buttonEl.disabled = false
-    buttonEl.classList.remove("loading")
-  }
+  // Hide upload panel after success
+  setTimeout(() => {
+    uploadPanel.classList.remove("active")
+  }, 2000)
 }
 
-async function pollJobStatus(jobId, pollInterval, statusEl, buttonEl) {
-  try {
-    const response = await fetch(`${API_BASE_URL}/clips/status/${jobId}`, {
-      headers: { Authorization: `Bearer ${getToken()}` },
-    })
+async function handleUrlUpload(title, description, gameId, subGame) {
+  const clipUrl = document.getElementById("clip-url").value
+  if (!clipUrl) throw new Error("Please enter a clip URL")
 
-    if (!response.ok) {
-      clearInterval(pollInterval)
-      statusEl.textContent = "job lost error."
-      buttonEl.disabled = false
-      buttonEl.classList.remove("loading")
-      return
-    }
-
-    const { status, error } = await response.json()
-    statusEl.textContent = `Status: ${status}...`
-
-    if (status === "completed") {
-      clearInterval(pollInterval)
-      statusEl.textContent = "Clip successfully sent!"
-      buttonEl.disabled = false
-      buttonEl.classList.remove("loading")
-      urlUploadForm.reset()
-      fetchClips()
-
-      setTimeout(() => {
-        uploadPanel.classList.remove("active")
-      }, 2000)
-    } else if (status === "failed") {
-      clearInterval(pollInterval)
-      statusEl.textContent = `failure: ${error}`
-      buttonEl.disabled = false
-      buttonEl.classList.remove("loading")
-    }
-  } catch (pollError) {
-    clearInterval(pollInterval)
-    statusEl.textContent = "Lost connection to servers."
-    buttonEl.disabled = false
-    buttonEl.classList.remove("loading")
+  const payload = {
+    clipUrl: clipUrl,
+    title: title,
+    gameId: gameId,
+    subGame: subGame,
+    description: description,
   }
+
+  const response = await fetch(`${API_BASE_URL}/clips/from-url`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${getToken()}`,
+    },
+    body: JSON.stringify(payload),
+  })
+
+  if (!response.ok) throw new Error("Failed to start job.")
+
+  const { jobId } = await response.json()
+
+  uploadStatus.textContent = "Processing to cloud..."
+
+  // Poll for job completion
+  return new Promise((resolve, reject) => {
+    const pollInterval = setInterval(async () => {
+      try {
+        const statusResponse = await fetch(`${API_BASE_URL}/clips/status/${jobId}`, {
+          headers: { Authorization: `Bearer ${getToken()}` },
+        })
+
+        if (!statusResponse.ok) {
+          clearInterval(pollInterval)
+          reject(new Error("Job lost error."))
+          return
+        }
+
+        const { status, error } = await statusResponse.json()
+        uploadStatus.textContent = `Status: ${status}...`
+
+        if (status === "completed") {
+          clearInterval(pollInterval)
+          uploadStatus.textContent = "Clip successfully sent!"
+          uploadForm.reset()
+          fetchClips()
+          setTimeout(() => {
+            uploadPanel.classList.remove("active")
+          }, 2000)
+          resolve()
+        } else if (status === "failed") {
+          clearInterval(pollInterval)
+          reject(new Error(error))
+        }
+      } catch (pollError) {
+        clearInterval(pollInterval)
+        reject(new Error("Lost connection to servers."))
+      }
+    }, 3000)
+  })
 }
 
 async function handleDelete(clipId) {
@@ -580,20 +563,33 @@ uploadToggle.addEventListener("click", () => {
 // Grid size toggle
 gridToggle.addEventListener("click", toggleGridSize)
 
-// Tab switching
-document.querySelectorAll(".tab-btn").forEach((btn) => {
+// Upload method switching
+document.querySelectorAll(".method-tab").forEach((btn) => {
   btn.addEventListener("click", () => {
-    const tabName = btn.dataset.tab
+    const method = btn.dataset.method
+    currentUploadMethod = method
 
     // Update active tab button
-    document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"))
+    document.querySelectorAll(".method-tab").forEach((b) => b.classList.remove("active"))
     btn.classList.add("active")
 
-    // Update active tab content
-    document.querySelectorAll(".tab-content").forEach((content) => {
+    // Update active method content
+    document.querySelectorAll(".upload-method").forEach((content) => {
       content.classList.remove("active")
     })
-    document.getElementById(`${tabName}-tab`).classList.add("active")
+    document.getElementById(`${method}-method`).classList.add("active")
+
+    // Update required fields
+    const videoFile = document.getElementById("video-file")
+    const clipUrl = document.getElementById("clip-url")
+
+    if (method === "file") {
+      videoFile.required = true
+      clipUrl.required = false
+    } else {
+      videoFile.required = false
+      clipUrl.required = true
+    }
   })
 })
 
@@ -617,7 +613,6 @@ searchInput.addEventListener("input", (e) => {
 
 // Form submissions
 uploadForm.addEventListener("submit", handleUpload)
-urlUploadForm.addEventListener("submit", handleUrlUpload)
 
 // Logout
 logoutButton.addEventListener("click", logout)
